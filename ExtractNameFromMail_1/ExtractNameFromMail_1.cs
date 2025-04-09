@@ -3,11 +3,11 @@ namespace ExtractNameFromMail_1
     using System;
     using System.Globalization;
     using System.Text.RegularExpressions;
-      using Skyline.DataMiner.Analytics.GenericInterface;
+    using Skyline.DataMiner.Analytics.GenericInterface;
     using Skyline.DataMiner.Net;
     using Skyline.DataMiner.Net.Helper;
 
-    [GQIMetaData(Name = "GQIO - RBM - RegexMatchGroup 1.0")]
+    [GQIMetaData(Name = "GQIO - RBM - RegexMatchGroup 1.2")]
     public class ExtractStringWithRegex : IGQIInputArguments, IGQIColumnOperator, IGQIRowOperator
     {
         private GQIColumnDropdownArgument _firstColumnArg = new GQIColumnDropdownArgument("Input column") { IsRequired = true, Types = new GQIColumnType[] { GQIColumnType.String } };
@@ -19,11 +19,22 @@ namespace ExtractNameFromMail_1
         private GQIStringColumn _newColumn;
         private string _regex;
         private double _matchGroup;
+        private IGQILogger _logger;
 
 
         public GQIArgument[] GetInputArguments()
         {
             return new GQIArgument[] { _firstColumnArg, _regexArg,_regexMatchArg, _nameArg };
+        }
+
+        public OnInitOutputArgs OnInit(OnInitInputArgs args)
+        {
+            _logger = args.Logger;
+
+            // Configure the logger to include logs for the 'Debug' level
+            _logger.MinimumLogLevel = GQILogLevel.Debug;
+
+            return default;
         }
 
         public void HandleColumns(GQIEditableHeader header)
@@ -33,6 +44,12 @@ namespace ExtractNameFromMail_1
 
         public void HandleRow(GQIEditableRow row)
         {
+            
+
+            var cellValue = row.GetValue(_inputColumn.Name);
+            _logger.Debug($"Value for '{row.Key}' is '{cellValue}'");
+
+
             string inputString = row.GetValue<string>(_inputColumn);
             if (inputString.IsNotNullOrEmpty())
             {
@@ -48,7 +65,9 @@ namespace ExtractNameFromMail_1
             _newColumn = new GQIStringColumn(args.GetArgumentValue(_nameArg));
             _regex = args.GetArgumentValue(_regexArg);
             _matchGroup = args.GetArgumentValue(_regexMatchArg);
-            return new OnArgumentsProcessedOutputArgs();
+            _logger.Information($"Column to log: {_inputColumn.Name}");
+            return default;
+
         }
 
         private static string GetMatchFromInput(string inputString, string inputregex, int matchgroup)
