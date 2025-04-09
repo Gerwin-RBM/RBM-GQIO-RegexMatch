@@ -2,61 +2,70 @@ namespace ExtractNameFromMail_1
 {
     using System;
     using System.Globalization;
+    using System.Text.RegularExpressions;
+      using Skyline.DataMiner.Analytics.GenericInterface;
+    using Skyline.DataMiner.Net;
+    using Skyline.DataMiner.Net.Helper;
 
-    using Skyline.DataMiner.Analytics.GenericInterface;
-
-    [GQIMetaData(Name = "GQIO - ExtractNameFromMail")]
-    public class ExtractNameFromMailOperator : IGQIInputArguments, IGQIColumnOperator, IGQIRowOperator
+    [GQIMetaData(Name = "GQIO - RBM - RegexMatchGroup 1.0")]
+    public class ExtractStringWithRegex : IGQIInputArguments, IGQIColumnOperator, IGQIRowOperator
     {
-        private readonly GQIColumnDropdownArgument _emailColumnArg; // Input Argument to be requested from the user;
-        private readonly GQIStringColumn _nameColumn; // New Column to be added;
+        private GQIColumnDropdownArgument _firstColumnArg = new GQIColumnDropdownArgument("Input column") { IsRequired = true, Types = new GQIColumnType[] { GQIColumnType.String } };
+        private GQIStringArgument _regexArg = new GQIStringArgument("RegEx") { IsRequired = true };
+        private GQIDoubleArgument _regexMatchArg = new GQIDoubleArgument("Match Group") { IsRequired = true, DefaultValue = 0 };
+        private GQIStringArgument _nameArg = new GQIStringArgument("Column name") { IsRequired = true };
 
-        private GQIColumn _emailColumn;
+        private GQIColumn _inputColumn;
+        private GQIStringColumn _newColumn;
+        private string _regex;
+        private double _matchGroup;
 
-        public ExtractNameFromMailOperator()
-        {
-            _emailColumnArg = new GQIColumnDropdownArgument("Email")
-            {
-                IsRequired = true,
-                Types = new[] { GQIColumnType.String },
-            };
-
-            _nameColumn = new GQIStringColumn("Name");
-        }
 
         public GQIArgument[] GetInputArguments()
         {
-            return new GQIArgument[] { _emailColumnArg };
+            return new GQIArgument[] { _firstColumnArg, _regexArg,_regexMatchArg, _nameArg };
         }
 
         public void HandleColumns(GQIEditableHeader header)
         {
-            header.AddColumns(_nameColumn);
+            header.AddColumns(_newColumn);
         }
 
         public void HandleRow(GQIEditableRow row)
         {
-            string email = row.GetValue<string>(_emailColumn);
-            string name = GetNameFromMail(email);
-
-            row.SetValue(_nameColumn, name);
+            string inputString = row.GetValue<string>(_inputColumn);
+            if (inputString.IsNotNullOrEmpty())
+            {
+                int matchgroup = Convert.ToInt32(_matchGroup);
+                string output = GetMatchFromInput(inputString, _regex, matchgroup);
+                row.SetValue(_newColumn, output);
+            }
         }
 
         public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
         {
-            _emailColumn = args.GetArgumentValue(_emailColumnArg); // Getting Input argument value;
-            return default;
+            _inputColumn = args.GetArgumentValue(_firstColumnArg); // Getting Input argument value;
+            _newColumn = new GQIStringColumn(args.GetArgumentValue(_nameArg));
+            _regex = args.GetArgumentValue(_regexArg);
+            _matchGroup = args.GetArgumentValue(_regexMatchArg);
+            return new OnArgumentsProcessedOutputArgs();
         }
 
-        private static string GetNameFromMail(string email)
+        private static string GetMatchFromInput(string inputString, string inputregex, int matchgroup)
         {
-            var partBeforeAt = email.Split('@')[0];
-            var nameParts = partBeforeAt.Split('.');
-
-            var formatedName = String.Join(" ", nameParts);
-            string result = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(formatedName);
-
-            return result;
+            string outputString;
+            Regex regex = new Regex($@"{inputregex}");
+            Match m = regex.Match(inputString);
+            if (m.Success)
+            {
+                Group g = m.Groups[matchgroup];
+                outputString = g.Value;
+            }
+            else
+            {
+                outputString = string.Empty;
+            }
+                return outputString;
         }
     }
 }
