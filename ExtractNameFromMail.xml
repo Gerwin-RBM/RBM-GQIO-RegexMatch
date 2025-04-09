@@ -21,7 +21,7 @@
 			<Value><![CDATA[[Project:ExtractNameFromMail_1]]]></Value>
 			<!--<Param type="debug">true</Param>-->
 			<Param type="preCompile">true</Param>
-			<Param type="libraryName">GQIO - RBM - RegexMatchGroup 1.2</Param>
+			<Param type="libraryName">GQIO - RBM - RegexMatchGroup 1.3 debug</Param>
 			<Message></Message>
 		</Exe>
 	</Script>
